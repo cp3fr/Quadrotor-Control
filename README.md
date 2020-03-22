@@ -411,6 +411,26 @@ Finally, make sure that no vertical acceleration is commanded:
 
 __(3.2) Implement the code in the function AltitudeControl()__
 
+In [QuadControl.cpp](../master/src/QuadControl.cpp/#L190-L203) update the function `AltitudeControl()`, which commands `thrust` based on commanded and actual position and velocity, and feedforward acceleration and quadrotor attitude.
+
+First, use a PID controller to computed desired acceleration in z-axis NED coordinates, `u_bar`:
+
+    p_term = kpPosZ * (posZCmd - posZ);
+    d_term = kpVelZ * (velZCmd - velZ);
+    integratedAltitudeError += (posZCmd - posZ) * dt;
+    i_term = KiPosZ * integratedAltitudeError;
+
+    u_bar = p_term + d_term + i_term + accelZCmd;
+
+Then, convert commanded acceleration in NED coordintes `u_bar` to acceleration in the interial frame `acc`, considering constant acceleration by gravity `CONST_GRAVITY` and quadrotor tilt offset from vertical:
+
+    acc = (u_bar - CONST_GRAVITY) / R(2, 2);
+
+Finally, compute thrust by considering mass, inversion of direction from inertial to body frame, and the maximum descent and ascent rates:
+
+    thrust = -mass * CONSTRAIN(acc, -maxDescentRate/dt, maxAscentRate/dt);
+
+
 __(3.3) Tune gains kpPosZ and kpVelXY__
 
 __(3.4) Implement the code in the function YawControl()__
