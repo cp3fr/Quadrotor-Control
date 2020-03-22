@@ -1,4 +1,4 @@
-# The C++ Project Readme #
+# Flying Car Nanodegree - Project: Control of a 3D Quadrotor #
 
 This is the readme for the C++ project.
 
@@ -8,6 +8,7 @@ For easy navigation throughout this document, here is an outline:
  - [Simulator walkthrough](#simulator-walkthrough)
  - [The tasks](#the-tasks)
  - [Evaluation](#evaluation)
+ - [Writeup](#writeup)
 
 
 ## Development Environment Setup ##
@@ -297,3 +298,8 @@ The specific performance metrics are as follows:
 ## Authors ##
 
 Thanks to Fotokite for the initial development of the project code and simulator.
+
+## Writeup ##
+
+- Intro (scenario 1)
+In order to identify the quadrotor mass, I set the cmd
