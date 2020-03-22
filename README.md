@@ -444,15 +444,14 @@ __(3.4) Implement the code in the function YawControl()__
 
 In [QuadControl.cpp](../master/src/QuadControl.cpp/#L270-L282) implement a P-controller for desired yaw rate `yawRateCmd` based on commanded `yawCmd` and actual yaw angle `yaw`:
 
-    float yaw_cmd = fmodf(yawCmd, 2.f * F_PI);
-    float yaw_err =  yaw_cmd - yaw;
+    yaw_cmd = fmodf(yawCmd, 2.f * F_PI);
+    yaw_err =  yaw_cmd - yaw;
     if (yaw_err > F_PI) {
         yaw_err -= 2.f * F_PI;
     } else if (yaw_err < -F_PI) {
         yaw_err += 2.f * F_PI;
     }
     yawRateCmd = kpYaw * yaw_err;
-
 
 __(3.5) Tune gains kpYaw and kpPQR__
 
@@ -461,11 +460,13 @@ Loosely tune the `kpYaw` gain and `kpPQR` third gain. The first quadrotor should
 
 ### Scenario 4: Non-idealities and robustness ###
 
-...
+Tune the gains further..
 
 ### Scenario 5: Tracking trajectories ###
 
-....
+Tune the gains further..
+
+In the end, the first quad should follow the trajectory well, whereas the second quad will still be somewhat off
 
 
 
