@@ -303,4 +303,4 @@ Thanks to Fotokite for the initial development of the project code and simulator
 
 ### Scenario 1: Intro ###
 
-We adjust the mass of the quadrotor, in [QuadPhysicalParams.txt](../blob/master/config/QuadPhysicalParams.txt/#L13)
+We adjust the mass of the quadrotor, in [QuadPhysicalParams.txt](../master/config/QuadPhysicalParams.txt/#L13)
