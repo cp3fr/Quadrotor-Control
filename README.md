@@ -317,6 +317,16 @@ Tune the mass of the quadrotor until it hovers in [QuadPhysicalParams.txt](../ma
 
 * `t4 = -momentCmd.z / kappa`: Thrust generating a moment around z. The conversion needs to invert the direction of thrust because in NED coordinates z axis points down. One needs to consider the drag / thrust coefficient `kappa`.
 
+Then, use the four thurst components to assign thrust to each motor, considering the correct motor order (different to the python code):
+
+`cmd.desiredThrustsN[0] =  0.25f * (t1 + t2 + t3 + t4); // front left`
+
+`cmd.desiredThrustsN[1] =  0.25f * (t1 - t2 + t3 - t4); // front right`
+
+`cmd.desiredThrustsN[2] =  0.25f * (t1 + t2 - t3 - t4); // rear left`
+
+`cmd.desiredThrustsN[3] =  0.25f * (t1 - t2 - t3 + t4); // rear right`
+
 
 (2) Next, we update `BodyRateControl()` in [QuadControl.cpp](../master/src/QuadControl.cpp/#L105-L111), which is a P-controller of commanded `pqrCmd` and actual `pqr` body rates, that considers the moments of interia around each axis `I` and provides the desired moments `momentCmd`.
 
