@@ -331,14 +331,14 @@ Then, use the four thrust components to mix and assign thrust for individual mot
     momentCmd[1] = Iyy * kpPQR[1] * (pqrCmd[1] - pqr[1]);
     momentCmd[2] = Izz * kpPQR[2] * (pqrCmd[2] - pqr[2]);
 
-After that, tune the `kpPQR` parameter in [QuadControlParams.txt](../master/config/QuadControlParams.txt/#L35). If successful, the simulated quadrotor should control roll rotation to `omega.x = 0`, thus keep a fixed attitude and fly laterally away becaue angle is not controlled yet.
+After that, tune the `kpPQR` parameter in [QuadControlParams.txt](../master/config/QuadControlParams.txt/#L35). If successful, the simulated quadrotor should settle on a roll rotation rate of `omega.x = 0`, thus keep a fixed attitude and fly laterally away becaue angle is not controlled yet.
 
 
-(3) Now it is time to implement the function `RollPitchControl(` in [QuadControlParams.txt](../master/src/QuadControl.cpp/#L138-L162), which is a P-controller of desired roll and pitch rates `pqrCmd` and takes as input the collective thrust `collThrustCmd`, desired lateral acceleration in x and y in NED coordinates `accelCmd`, and the current attitude of the quad `attitude`.
+(3) Now it is time to implement the function `RollPitchControl` in [QuadControlParams.txt](../master/src/QuadControl.cpp/#L138-L162), which is a P-controller of desired roll and pitch rates `pqrCmd` and takes as input the collective thrust `collThrustCmd`, desired lateral acceleration in x and y in NED coordinates `accelCmd`, and the current attitude of the quad `attitude`.
 
 Conversion of `attitude` to rotation matrix `R` for the rotation of the body frame into the interial frame is already given by:
 
-    Mat3x3F R = attitude.RotationMatrix_IwrtB();
+    R = attitude.RotationMatrix_IwrtB();
 
 First, we need to convert thrust to acceleration by division by `mass` and invert the direction to be compatible with NED downward direction of z-axis. This will result in commanded collective acceleration `c`:
 
@@ -363,11 +363,20 @@ We must make sure that no z-command is given, because this is handled in the Alt
 
     pqrCmd.z = 0.f;
 
-After that, we tune `kpBank`, such that the quad achieves zero roll angle and does not overshoot too much.
+After that, we tune `kpBank`, such that the quad settles on a roll angle of `roll = 0` and does not overshoot
 
 
-### Scenario 3: Position/velocity and yaw angle control###
+### Scenario 3: Position/velocity and yaw angle control ###
 
+...
+
+### Scenario 4: Non-idealities and robustness ###
+
+...
+
+### Scenario 5: Tracking trajectories ###
+
+....
 
 
 
