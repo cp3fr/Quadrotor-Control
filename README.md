@@ -8,7 +8,7 @@ For easy navigation throughout this document, here is an outline:
  - [Simulator walkthrough](#simulator-walkthrough)
  - [The tasks](#the-tasks)
  - [Evaluation](#evaluation)
- - [Writeup](#writeup)
+ - [SOLUTION WRITEUP](#solution-writeup)
 
 
 ## Development Environment Setup ##
@@ -299,7 +299,9 @@ The specific performance metrics are as follows:
 
 Thanks to Fotokite for the initial development of the project code and simulator.
 
-## Writeup ##
+
+
+## Solution Writeup ##
 
 ### Scenario 1: Intro ###
 
@@ -308,7 +310,7 @@ In [QuadPhysicalParams.txt](../master/config/QuadPhysicalParams.txt/#L13) tune t
 ### Scenario 2: Body rate and pitch/roll control ###
 
 
-__(1) Implement the code in the function GenerateMotorCommands()__
+__(2.1) Implement the code in the function GenerateMotorCommands()__
 
 In [QuadControl.cpp](../master/src/QuadControl.cpp/#L71-L84) update the function `GenerateMotorCommands()` by converting the outputs of the cascaded controller (i.e., collective thrust `collThrustCmd` and moments around x, y, z in the body frame `momentCmd`) into four thrust components: 
 
@@ -328,7 +330,7 @@ Then, use the four thrust components to mix and assign thrust for individual mot
     cmd.desiredThrustsN[3] =  0.25f * (t1 - t2 - t3 + t4); // rear right
 
 
-__(2) Implement the code in the function BodyRateControl()__
+__(2.2) Implement the code in the function BodyRateControl()__
 
 Next, in [QuadControl.cpp](../master/src/QuadControl.cpp/#L105-L111) we update the function `BodyRateControl()`, which uses a P-controller of the desired moments `momentCmd` taking as input the commanded body rates `pqrCmd` and actual body rates `pqr`. We use the controller gains `kpPQR` and take into account the moments of interia for each axis `I`:
 
@@ -337,12 +339,12 @@ Next, in [QuadControl.cpp](../master/src/QuadControl.cpp/#L105-L111) we update t
     momentCmd[2] = Izz * kpPQR[2] * (pqrCmd[2] - pqr[2]);
 
 
-__(3) Tune the kpPQR gains__
+__(2.3) Tune the kpPQR gains__
 
 After that, tune the `kpPQR` parameter in [QuadControlParams.txt](../master/config/QuadControlParams.txt/#L35). If successful, the simulated quadrotor should settle on a roll rotation rate of `omega.x = 0`, thus keep a fixed attitude and fly laterally away becaue angle is not controlled yet.
 
 
-__(4) Implement the code in the function RollPitchControl()__
+__(2.4) Implement the code in the function RollPitchControl()__
 
 Now it is time to implement the function `RollPitchControl` in [QuadControlParams.txt](../master/src/QuadControl.cpp/#L138-L162), which is a P-controller of desired roll and pitch rates `pqrCmd` and takes as input the collective thrust `collThrustCmd`, desired lateral acceleration in x and y in NED coordinates `accelCmd`, and the current attitude of the quad `attitude`.
 
@@ -374,14 +376,51 @@ We must make sure that no z-command is given, because this is handled in the Alt
     pqrCmd.z = 0.f;
 
 
-__(5) Tune the kpBank gain__
+__(2.5) Tune the kpBank gain__
 
 After that, we tune `kpBank`, such that the quad settles on a roll angle of `roll = 0` and does not overshoot
 
 
 ### Scenario 3: Position/velocity and yaw angle control ###
 
-...
+__(3.1) Implement the code in the function LateralPositionControl()__
+
+In [QuadControl.cpp](../master/src/QuadControl.cpp/#L237-L251) update the function `LateralPositionControl()`, which uses a PD controller of commanded horizontal accelerations in NED coorinates `accelCmd`.
+
+First, constrain the commanded velocity `velCmd` to the maximum speed `maxSpeedXY`:
+
+    if (sqrt(velCmd.x * velCmd.x + velCmd.y * velCmd.y) > maxSpeedXY) {
+        velCmd = velCmd.norm() * maxSpeedXY;
+    }
+
+Then, use a PD controller on commanded and actual position (`posCmd`, `pos`) and velocity (`velCmd`, `vel`) and a feedforward acceleration command using gains `kpPosXY`and `kpVelXY`:
+
+    accelCmd.x = kpPosXY * (posCmd.x - pos.x) + kpVelXY * (velCmd.x - vel.x) + accelCmdFF.x;
+    accelCmd.y = kpPosXY * (posCmd.y - pos.y) + kpVelXY * (velCmd.y - vel.y) + accelCmdFF.y;
+
+After that, constrain the commanded acceleration `accelCmd` to the maximum acceleration `maxAccelXY`: 
+
+    if (sqrt(accelCmd.x * accelCmd.x + accelCmd.y * accelCmd.y) > maxAccelXY) {
+        accelCmd = accelCmd.norm() * maxAccelXY;
+    }
+
+Finally, make sure that no vertical acceleration is commanded:
+
+    accelCmd.z = 0.f;
+
+
+__(3.2) Implement the code in the function AltitudeControl()__
+
+__(3.3) Tune gains kpPosZ and kpVelXY__
+
+__(3.4) Implement the code in the function YawControl()__
+
+__(3.5) Tune gains kpYaw and kpPQR__
+
+
+
+
+
 
 ### Scenario 4: Non-idealities and robustness ###
 
