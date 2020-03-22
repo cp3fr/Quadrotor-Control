@@ -307,4 +307,22 @@ Tune the mass of the quadrotor until it hovers in [QuadPhysicalParams.txt](../ma
 
 ### Scenario 2: Body rate and pitch/roll control ###
 
-Update the function `GenerateMotorCommands()` in [QuadControl.cpp](../master/src/QuadControl.cpp/#L71-L84), by converting the commanded collective thrust `collThrustCmd` and moments around x, y, z in the body frame `momentCmd` from the cascaded controller into thrust components (i.e. `t1`, `t2`, `t3`, `t4`). The conversion needs to consider perpendicular distance of the motors from the x and y axis: `l = L / sqrt(2.f)`, where `l` is perpendicular distance and `L` is motor distance from center.
+(1) Update the function `GenerateMotorCommands()` in [QuadControl.cpp](../master/src/QuadControl.cpp/#L71-L84), by converting the commanded collective thrust `collThrustCmd` and moments around x, y, z in the body frame `momentCmd` from the cascaded controller into four thrust components: 
+
+* `t1 = collThrustCmd`: Collective thrust
+
+* `t2 = momentCmd.x / l`: Thrust generating a moment around x. The conversion needs to consider the perpendicular distance of the motors from the x axis `l = L / sqrt(2.f)`, where `l` is perpendicular distance and `L` is motor distance from center. 
+
+* `t3 = momentCmd.y / l`: Thrust generating a moment around y (conversion similar to x).
+
+* `t4 = -momentCmd.z / kappa`: Thrust generating a moment around z. The conversion needs to invert the direction of thrust because in NED coordinates z axis points down. One needs to consider the drag / thrust coefficient `kappa`.
+
+
+(2) Next, we update `BodyRateControl()` in [QuadControl.cpp](../master/src/QuadControl.cpp/#L105-L111), which is a P-controller of commanded `pqrCmd` and actual `pqr` body rates, that considers the moments of interia around each axis `I` and provides the desired moments `momentCmd`.
+
+After tuning the `kpPQR` parameters in [QuadControlParams.txt](../master/config/QuadControlParams.txt/#L35), the simulated quadrotor should quickly stop rolling, keep a fixed attitude and fly away becaue angle is not controlled yet.
+
+
+(3) Now it is time to implement the `RollPitchControl()` function in [QuadControl.cpp](../master/src/QuadControl.cpp/#L138-L162).
+
+
