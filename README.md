@@ -303,19 +303,19 @@ Thanks to Fotokite for the initial development of the project code and simulator
 
 ### Scenario 1: Intro ###
 
-Tune the `Mass` of the quadrotor until it hovers in [QuadPhysicalParams.txt](../master/config/QuadPhysicalParams.txt/#L13).
+In [QuadPhysicalParams.txt](../master/config/QuadPhysicalParams.txt/#L13) tune the `Mass` parameter until the quadrotor hovers.
 
 ### Scenario 2: Body rate and pitch/roll control ###
 
-(1) Update the function [GenerateMotorCommands()](../master/src/QuadControl.cpp/#L71-L84), by converting controller outputs for collective thrust `collThrustCmd` and moments around x, y, z in the body frame `momentCmd` into four thrust components: 
+(1) In [QuadControl.cpp](../master/src/QuadControl.cpp/#L71-L84) update the function `GenerateMotorCommands()` by converting the outputs of the cascaded controller (i.e., collective thrust `collThrustCmd` and moments around x, y, z in the body frame `momentCmd`) into four thrust components: 
 
 * `t1 = collThrustCmd`: Collective thrust
 
-* `t2 = momentCmd.x / l`: Thrust generating a moment around x. The conversion needs to consider the perpendicular distance of the motors from the x axis `l = L / sqrt(2.f)`, where `l` is perpendicular distance and `L` is motor distance from center. 
+* `t2 = momentCmd.x / l`: Thrust generating roll rotation. The conversion needs to consider the perpendicular distance of the motors from the x axis `l = L / sqrt(2.f)`, where `L` is motor distance from center. 
 
-* `t3 = momentCmd.y / l`: Thrust generating a moment around y (conversion similar to x).
+* `t3 = momentCmd.y / l`: Thrust generating pitch rotation (conversion similar to x).
 
-* `t4 = -momentCmd.z / kappa`: Thrust generating a moment around z. The conversion needs to invert the direction of thrust because in NED coordinates z axis points down. One needs to consider the drag / thrust coefficient `kappa`.
+* `t4 = -momentCmd.z / kappa`: Thrust generating yaw rotation. The conversion needs to invert the direction of thrust because in NED coordinates z axis points down. One needs to consider the drag / thrust coefficient `kappa`.
 
 Then, use the four thrust components to mix and assign thrust for individual motors to `cmd.desiredThrustsN`. Pay attention to the order of motors, which is different to the python code:
 
@@ -325,16 +325,49 @@ Then, use the four thrust components to mix and assign thrust for individual mot
     cmd.desiredThrustsN[3] =  0.25f * (t1 - t2 - t3 + t4); // rear right
 
 
-(2) Next, we update the function [BodyRateControl()](../master/src/QuadControl.cpp/#L105-L111), which is a P-controller of desired moments `momentCmd` based on commanded body rates `pqrCmd` and actual body rates `pqr`, using the gains `kpPQR` and considering the moments of interia around each axis `I`:
+(2) Next, in [QuadControl.cpp](../master/src/QuadControl.cpp/#L105-L111) we update the function `BodyRateControl()`, which uses a P-controller of the desired moments `momentCmd` taking as input the commanded body rates `pqrCmd` and actual body rates `pqr`. We use the controller gains `kpPQR` and take into account the moments of interia for each axis `I`:
 
     momentCmd[0] = Ixx * kpPQR[0] * (pqrCmd[0] - pqr[0]);
     momentCmd[1] = Iyy * kpPQR[1] * (pqrCmd[1] - pqr[1]);
     momentCmd[2] = Izz * kpPQR[2] * (pqrCmd[2] - pqr[2]);
 
-After that, tun the `kpPQR` parameters in [QuadControlParams.txt](../master/config/QuadControlParams.txt/#L35), the simulated quadrotor should quickly stop rolling, keep a fixed attitude and fly away becaue angle is not controlled yet.
+After that, tune the `kpPQR` parameter in [QuadControlParams.txt](../master/config/QuadControlParams.txt/#L35). If successful, the simulated quadrotor should control roll rotation to `omega.x = 0`, thus keep a fixed attitude and fly laterally away becaue angle is not controlled yet.
 
 
-(3) Now, it is time to implement the function [RollPitchControl()](../master/src/QuadControl.cpp/#L138-L162), which is a P-controller of desired roll and pitch rates `pqrCmd`, taking as input the collective thrust `collThrustCmd`, desired acceleration in NED coordinates `accelCmd` and current attitude of the quad `attitude`.
+(3) Now it is time to implement the function `RollPitchControl(` in [QuadControlParams.txt](../master/src/QuadControl.cpp/#L138-L162), which is a P-controller of desired roll and pitch rates `pqrCmd` and takes as input the collective thrust `collThrustCmd`, desired lateral acceleration in x and y in NED coordinates `accelCmd`, and the current attitude of the quad `attitude`.
+
+Conversion of `attitude` to rotation matrix `R` for the rotation of the body frame into the interial frame is already given by:
+
+    Mat3x3F R = attitude.RotationMatrix_IwrtB();
+
+First, we need to convert thrust to acceleration by division by `mass` and invert the direction to be compatible with NED downward direction of z-axis. This will result in commanded collective acceleration `c`:
+
+    c = -collThrustCmd / mass
+
+Next, we compute target values for rotation matrix elemets R13 and R23, which is the proportion of commanded horizontal acceleration `accelCmd` and collective thrust `c`. We constrain these values by the `maxTiltAngle`:
+
+    b_x_c = CONSTRAIN(accelCmd.x / c, -maxTiltAngle, maxTiltAngle);
+    b_y_c = CONSTRAIN(accelCmd.y / c, -maxTiltAngle, maxTiltAngle);
+
+We then apply a P-controller on these target values `b_x_c` and `b_y_c` and actual values of rotation matrix elements R13 and R23, using the gain `kpBank`:
+
+    b_x_term = kpBank * (b_x_c - R(0, 2));
+    b_y_term = kpBank * (b_y_c - R(1, 2));
+
+Finally we compute the desired body rates `pqrCmd` using relevant math:
+
+    pqrCmd.x = (R(1, 0) * b_x_term - R(0, 0) * b_y_term) / R(2, 2);
+    pqrCmd.y = (R(1, 1) * b_x_term - R(0, 1) * b_y_term) / R(2, 2);
+
+We must make sure that no z-command is given, because this is handled in the Altitude controller:
+
+    pqrCmd.z = 0.f;
+
+After that, we tune `kpBank`, such that the quad achieves zero roll angle and does not overshoot too much.
+
+
+### Scenario 3: Position/velocity and yaw angle control###
+
 
 
 
