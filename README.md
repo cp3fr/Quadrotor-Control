@@ -1,4 +1,4 @@
-# Flying Car Nanodegree - Project: Control of a 3D Quadrotor #
+# Flying Car Nanodegree - Project 3: Control of a 3D Quadrotor #
 
 This is the readme for the C++ project.
 
@@ -301,5 +301,6 @@ Thanks to Fotokite for the initial development of the project code and simulator
 
 ## Writeup ##
 
-- Intro (scenario 1)
-In order to identify the quadrotor mass, I set the cmd
+### Scenario 1: Intro ###
+
+We adjust the mass of the quadrotor, in [QuadPhysicalParams.txt](../blob/master/config/QuadPhysicalParams.txt/#L13)
