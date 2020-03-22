@@ -378,7 +378,7 @@ We must make sure that no z-command is given, because this is handled in the Alt
 
 __(2.5) Tune the kpBank gain__
 
-After that, we tune `kpBank`, such that the quad settles on a roll angle of `roll = 0` and does not overshoot
+After that, we tune `kpBank` in , such that the quad settles on a roll angle of `roll = 0` and does not overshoot
 
 
 ### Scenario 3: Position/velocity and yaw angle control ###
@@ -411,9 +411,13 @@ Finally, make sure that no vertical acceleration is commanded:
 
 __(3.2) Implement the code in the function AltitudeControl()__
 
-In [QuadControl.cpp](../master/src/QuadControl.cpp/#L190-L203) update the function `AltitudeControl()`, which commands `thrust` based on commanded and actual position and velocity, and feedforward acceleration and quadrotor attitude.
+In [QuadControl.cpp](../master/src/QuadControl.cpp/#L190-L203) update the function `AltitudeControl()`, which commands `thrust` based on commanded and actual z-axis position and velocity (`posZCmd`, `posZ`, `velZCmd`, `velZ`), quadrotor attitude (`attitude`) and feedforward acceleration (`accelZcmd`).
 
-First, use a PID controller to computed desired acceleration in z-axis NED coordinates, `u_bar`:
+Rotation matrix `R` is given by:
+
+    R = attitude.RotationMatrix_IwrtB();
+
+First, use a PID controller to compute desired acceleration in z-axis NED coordinates, `u_bar`:
 
     p_term = kpPosZ * (posZCmd - posZ);
     d_term = kpVelZ * (velZCmd - velZ);
@@ -433,13 +437,26 @@ Finally, compute thrust by considering mass, inversion of direction from inertia
 
 __(3.3) Tune gains kpPosZ and kpVelXY__
 
+In [QuadControlParams.txt](../master/config/QuadControlParams.txt) tune `kpPosZ` and `kpVelXY` gains, such that the quadrotors go to the desired location without overshooting.
+
+
 __(3.4) Implement the code in the function YawControl()__
+
+In [QuadControl.cpp](../master/src/QuadControl.cpp/#L270-L282) implement a P-controller for desired yaw rate `yawRateCmd` based on commanded `yawCmd` and actual yaw angle `yaw`:
+
+    float yaw_cmd = fmodf(yawCmd, 2.f * F_PI);
+    float yaw_err =  yaw_cmd - yaw;
+    if (yaw_err > F_PI) {
+        yaw_err -= 2.f * F_PI;
+    } else if (yaw_err < -F_PI) {
+        yaw_err += 2.f * F_PI;
+    }
+    yawRateCmd = kpYaw * yaw_err;
+
 
 __(3.5) Tune gains kpYaw and kpPQR__
 
-
-
-
+Loosely tune the `kpYaw` gain and `kpPQR` third gain. The first quadrotor should smoothly turn to the desired yaw angle.
 
 
 ### Scenario 4: Non-idealities and robustness ###
