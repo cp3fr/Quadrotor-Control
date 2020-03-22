@@ -303,11 +303,11 @@ Thanks to Fotokite for the initial development of the project code and simulator
 
 ### Scenario 1: Intro ###
 
-Tune the mass of the quadrotor until it hovers in [QuadPhysicalParams.txt](../master/config/QuadPhysicalParams.txt/#L13).
+Tune the `Mass` of the quadrotor until it hovers in [QuadPhysicalParams.txt](../master/config/QuadPhysicalParams.txt/#L13).
 
 ### Scenario 2: Body rate and pitch/roll control ###
 
-(1) Update the function `GenerateMotorCommands()` in [QuadControl.cpp](../master/src/QuadControl.cpp/#L71-L84), by converting the commanded collective thrust `collThrustCmd` and moments around x, y, z in the body frame `momentCmd` from the cascaded controller into four thrust components: 
+(1) Update the function [GenerateMotorCommands()](../master/src/QuadControl.cpp/#L71-L84), by converting controller outputs for collective thrust `collThrustCmd` and moments around x, y, z in the body frame `momentCmd` into four thrust components: 
 
 * `t1 = collThrustCmd`: Collective thrust
 
@@ -317,7 +317,7 @@ Tune the mass of the quadrotor until it hovers in [QuadPhysicalParams.txt](../ma
 
 * `t4 = -momentCmd.z / kappa`: Thrust generating a moment around z. The conversion needs to invert the direction of thrust because in NED coordinates z axis points down. One needs to consider the drag / thrust coefficient `kappa`.
 
-Then, use the four thrust components to mix thrust for individual motors and use the correct order of motors (different to the python code):
+Then, use the four thrust components to mix and assign thrust for individual motors to `cmd.desiredThrustsN`. Pay attention to the order of motors, which is different to the python code:
 
     cmd.desiredThrustsN[0] =  0.25f * (t1 + t2 + t3 + t4); // front left
     cmd.desiredThrustsN[1] =  0.25f * (t1 - t2 + t3 - t4); // front right
@@ -325,15 +325,17 @@ Then, use the four thrust components to mix thrust for individual motors and use
     cmd.desiredThrustsN[3] =  0.25f * (t1 - t2 - t3 + t4); // rear right
 
 
-(2) Next, we update `BodyRateControl()` in [QuadControl.cpp](../master/src/QuadControl.cpp/#L105-L111), which is a P-controller of commanded `pqrCmd` and actual `pqr` body rates, that considers the moments of interia around each axis `I` and provides the desired moments `momentCmd`.
+(2) Next, we update the function [BodyRateControl()](../master/src/QuadControl.cpp/#L105-L111), which is a P-controller of desired moments `momentCmd` based on commanded body rates `pqrCmd` and actual body rates `pqr`, using the gains `kpPQR` and considering the moments of interia around each axis `I`:
 
     momentCmd[0] = Ixx * kpPQR[0] * (pqrCmd[0] - pqr[0]);
     momentCmd[1] = Iyy * kpPQR[1] * (pqrCmd[1] - pqr[1]);
     momentCmd[2] = Izz * kpPQR[2] * (pqrCmd[2] - pqr[2]);
 
-After tuning the `kpPQR` parameters in [QuadControlParams.txt](../master/config/QuadControlParams.txt/#L35), the simulated quadrotor should quickly stop rolling, keep a fixed attitude and fly away becaue angle is not controlled yet.
+After that, tun the `kpPQR` parameters in [QuadControlParams.txt](../master/config/QuadControlParams.txt/#L35), the simulated quadrotor should quickly stop rolling, keep a fixed attitude and fly away becaue angle is not controlled yet.
 
 
-(3) Now it is time to implement the `RollPitchControl()` function in [QuadControl.cpp](../master/src/QuadControl.cpp/#L138-L162).
+(3) Now, it is time to implement the function [RollPitchControl()](../master/src/QuadControl.cpp/#L138-L162), which is a P-controller of desired roll and pitch rates `pqrCmd`, taking as input the collective thrust `collThrustCmd`, desired acceleration in NED coordinates `accelCmd` and current attitude of the quad `attitude`.
+
+
 
 
