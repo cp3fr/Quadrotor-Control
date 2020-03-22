@@ -307,7 +307,10 @@ In [QuadPhysicalParams.txt](../master/config/QuadPhysicalParams.txt/#L13) tune t
 
 ### Scenario 2: Body rate and pitch/roll control ###
 
-(1) In [QuadControl.cpp](../master/src/QuadControl.cpp/#L71-L84) update the function `GenerateMotorCommands()` by converting the outputs of the cascaded controller (i.e., collective thrust `collThrustCmd` and moments around x, y, z in the body frame `momentCmd`) into four thrust components: 
+
+__(1) Implement the code in the function GenerateMotorCommands()__
+
+In [QuadControl.cpp](../master/src/QuadControl.cpp/#L71-L84) update the function `GenerateMotorCommands()` by converting the outputs of the cascaded controller (i.e., collective thrust `collThrustCmd` and moments around x, y, z in the body frame `momentCmd`) into four thrust components: 
 
 * `t1 = collThrustCmd`: Collective thrust
 
@@ -325,16 +328,23 @@ Then, use the four thrust components to mix and assign thrust for individual mot
     cmd.desiredThrustsN[3] =  0.25f * (t1 - t2 - t3 + t4); // rear right
 
 
-(2) Next, in [QuadControl.cpp](../master/src/QuadControl.cpp/#L105-L111) we update the function `BodyRateControl()`, which uses a P-controller of the desired moments `momentCmd` taking as input the commanded body rates `pqrCmd` and actual body rates `pqr`. We use the controller gains `kpPQR` and take into account the moments of interia for each axis `I`:
+__(2) Implement the code in the function BodyRateControl()__
+
+Next, in [QuadControl.cpp](../master/src/QuadControl.cpp/#L105-L111) we update the function `BodyRateControl()`, which uses a P-controller of the desired moments `momentCmd` taking as input the commanded body rates `pqrCmd` and actual body rates `pqr`. We use the controller gains `kpPQR` and take into account the moments of interia for each axis `I`:
 
     momentCmd[0] = Ixx * kpPQR[0] * (pqrCmd[0] - pqr[0]);
     momentCmd[1] = Iyy * kpPQR[1] * (pqrCmd[1] - pqr[1]);
     momentCmd[2] = Izz * kpPQR[2] * (pqrCmd[2] - pqr[2]);
 
+
+__(3) Tune the kpPQR gains__
+
 After that, tune the `kpPQR` parameter in [QuadControlParams.txt](../master/config/QuadControlParams.txt/#L35). If successful, the simulated quadrotor should settle on a roll rotation rate of `omega.x = 0`, thus keep a fixed attitude and fly laterally away becaue angle is not controlled yet.
 
 
-(3) Now it is time to implement the function `RollPitchControl` in [QuadControlParams.txt](../master/src/QuadControl.cpp/#L138-L162), which is a P-controller of desired roll and pitch rates `pqrCmd` and takes as input the collective thrust `collThrustCmd`, desired lateral acceleration in x and y in NED coordinates `accelCmd`, and the current attitude of the quad `attitude`.
+__(4) Implement the code in the function RollPitchControl()__
+
+Now it is time to implement the function `RollPitchControl` in [QuadControlParams.txt](../master/src/QuadControl.cpp/#L138-L162), which is a P-controller of desired roll and pitch rates `pqrCmd` and takes as input the collective thrust `collThrustCmd`, desired lateral acceleration in x and y in NED coordinates `accelCmd`, and the current attitude of the quad `attitude`.
 
 Conversion of `attitude` to rotation matrix `R` for the rotation of the body frame into the interial frame is already given by:
 
@@ -344,7 +354,7 @@ First, we need to convert thrust to acceleration by division by `mass` and inver
 
     c = -collThrustCmd / mass
 
-Next, we compute target values for rotation matrix elemets R13 and R23, which is the proportion of commanded horizontal acceleration `accelCmd` and collective thrust `c`. We constrain these values by the `maxTiltAngle`:
+Next, we compute target values for rotation matrix elemets R13 and R23, which is the ratio of commanded horizontal acceleration `accelCmd` and the total collective thrust `c`. We constrain these values by the `maxTiltAngle`:
 
     b_x_c = CONSTRAIN(accelCmd.x / c, -maxTiltAngle, maxTiltAngle);
     b_y_c = CONSTRAIN(accelCmd.y / c, -maxTiltAngle, maxTiltAngle);
@@ -362,6 +372,9 @@ Finally we compute the desired body rates `pqrCmd` using relevant math:
 We must make sure that no z-command is given, because this is handled in the Altitude controller:
 
     pqrCmd.z = 0.f;
+
+
+__(5) Tune the kpBank gain__
 
 After that, we tune `kpBank`, such that the quad settles on a roll angle of `roll = 0` and does not overshoot
 
