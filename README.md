@@ -307,4 +307,4 @@ Tune the mass of the quadrotor until it hovers in [QuadPhysicalParams.txt](../ma
 
 ### Scenario 2: Body rate and pitch/roll control ###
 
-Update the function `GenerateMotorCommands()` in [QuadControl.cpp](../master/src/QuadControl.cpp/#L71-L84), by converting the commanded collective thrust `collThrustCmd` and moments `momentCmd` from the cascaded controller into thrust components for each motor. 
+Update the function `GenerateMotorCommands()` in [QuadControl.cpp](../master/src/QuadControl.cpp/#L71-L84), by converting the commanded collective thrust `collThrustCmd` and moments around x, y, z in the body frame `momentCmd` from the cascaded controller into thrust components (i.e. `t1`, `t2`, `t3`, `t4`). The conversion needs to consider perpendicular distance of the motors from the x and y axis: `l = L / sqrt(2.f)`, where `l` is perpendicular distance and `L` is motor distance from center.
